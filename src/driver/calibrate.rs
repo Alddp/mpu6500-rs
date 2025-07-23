@@ -1,3 +1,5 @@
+use core::{u16, usize};
+
 use crate::Mpu6500;
 
 use embassy_time::Timer;
@@ -10,16 +12,17 @@ where
     CS: OutputPin,
 {
     /// 校准传感器
-    pub async fn calibrate_sensors(&mut self) -> Result<(), SPI::Error> {
-        self.calibrate_accel().await?;
-        self.calibrate_gyro().await?;
+    pub async fn calibrate_sensors(&mut self, cycle:u16) -> Result<(), SPI::Error> {
+        self.calibrate_accel(cycle).await?;
+        self.calibrate_gyro(cycle).await?;
         Ok(())
     }
 
     /// 校准加速度计
-    pub async fn calibrate_accel(&mut self) -> Result<(), SPI::Error> {
+    pub async fn calibrate_accel(&mut self, cycle: u16) -> Result<(), SPI::Error> {
         let mut sum = (0i32, 0i32, 0i32);
-        for _ in 0..100 {
+
+        for _ in 0..cycle {
             let (x, y, z) = self.read_accel_raw().await?;
             sum.0 += x as i32;
             sum.1 += y as i32;
@@ -27,18 +30,18 @@ where
             Timer::after_micros(500).await;
         }
         let avg = (
-            (sum.0 / 100) as i16,
-            (sum.1 / 100) as i16,
-            ((sum.2 / 100) - 16384) as i16, // 减去重力加速度
+            (sum.0 / cycle as i32) as i16,
+            (sum.1 / cycle as i32) as i16,
+            ((sum.2 / cycle as i32) - 16384) as i16, // 减去重力加速度
         );
         self.accel_offset = avg;
         Ok(())
     }
 
     /// 校准陀螺仪
-    pub async fn calibrate_gyro(&mut self) -> Result<(), SPI::Error> {
+    pub async fn calibrate_gyro(&mut self, cycle: u16) -> Result<(), SPI::Error> {
         let mut sum = (0i32, 0i32, 0i32);
-        for _ in 0..100 {
+        for _ in 0..cycle {
             let (x, y, z) = self.read_gyro_raw().await?;
             sum.0 += x as i32;
             sum.1 += y as i32;
@@ -46,9 +49,9 @@ where
             Timer::after_micros(500).await;
         }
         let avg = (
-            (sum.0 / 100) as i16,
-            (sum.1 / 100) as i16,
-            (sum.2 / 100) as i16,
+            (sum.0 / cycle as i32) as i16,
+            (sum.1 / cycle as i32) as i16,
+            (sum.2 / cycle as i32) as i16,
         );
         self.gyro_offset = avg;
         Ok(())

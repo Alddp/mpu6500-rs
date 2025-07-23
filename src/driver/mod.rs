@@ -30,7 +30,7 @@ where
             config,
             accel_offset: (0, 0, 0),
             gyro_offset: (0, 0, 0),
-            last_update: None,
+            // last_update: None,
             pitch: 0.0,
             roll: 0.0,
             yaw: 0.0,
@@ -64,9 +64,9 @@ where
     }
 
     /// 校准初始化（包含传感器校准）
-    pub async fn calibrate_init(&mut self) -> Result<(), SPI::Error> {
+    pub async fn calibrate_init(&mut self,cycle:u16) -> Result<(), SPI::Error> {
         self.init_with_config().await?;
-        self.calibrate_sensors().await?;
+        self.calibrate_sensors(cycle).await?;
         Ok(())
     }
 }

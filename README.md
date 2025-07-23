@@ -95,10 +95,6 @@ async fn mpu_task(
 - `Mpu6500::enable_interrupts()` / `read_interrupt_status()`：中断操作
 - 更多见 [API 文档](https://docs.rs/mpu6500)
 
-## 示例
-
-- `examples/` 目录下有多种用法示例，包括自定义配置、校准、FIFO、中断等
-
 ## 依赖与兼容性
 
 - 依赖：`embedded-hal`、`embedded-hal-async`
