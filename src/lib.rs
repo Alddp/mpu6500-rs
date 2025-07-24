@@ -30,6 +30,12 @@ pub struct Mpu6500Builder<SPI, CS> {
     initial_attitude: (f32, f32, f32),
 }
 
+impl<SPI, CS> Default for Mpu6500Builder<SPI, CS> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<SPI, CS> Mpu6500Builder<SPI, CS> {
     pub fn new() -> Self {
         Self {

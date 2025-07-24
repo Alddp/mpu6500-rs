@@ -15,7 +15,7 @@ pub fn rad2deg(rad: f32) -> f32 {
 /// - last: 上一次采样的时间戳（单位：微秒或毫秒）
 /// - now: 当前时间戳
 /// - unit_per_sec: 1秒对应的单位数（微秒=1_000_000，毫秒=1_000）
-/// 返回值为秒
+///   返回值为秒
 pub fn calc_dt(last: u64, now: u64, unit_per_sec: u64) -> f32 {
     if now > last {
         (now - last) as f32 / unit_per_sec as f32

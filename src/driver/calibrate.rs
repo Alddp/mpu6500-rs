@@ -1,5 +1,3 @@
-use core::{u16, usize};
-
 use crate::Mpu6500;
 
 use embassy_time::Timer;
@@ -12,7 +10,7 @@ where
     CS: OutputPin,
 {
     /// 校准传感器
-    pub async fn calibrate_sensors(&mut self, cycle:u16) -> Result<(), SPI::Error> {
+    pub async fn calibrate_sensors(&mut self, cycle: u16) -> Result<(), SPI::Error> {
         self.calibrate_accel(cycle).await?;
         self.calibrate_gyro(cycle).await?;
         Ok(())
