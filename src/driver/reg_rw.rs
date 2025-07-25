@@ -3,10 +3,11 @@ use crate::Mpu6500;
 use embedded_hal::digital::OutputPin;
 use embedded_hal_async::spi::SpiBus;
 
-impl<SPI, CS> Mpu6500<SPI, CS>
+impl<SPI, CS, T> Mpu6500<SPI, CS, T>
 where
     SPI: SpiBus<u8>,
     CS: OutputPin,
+    T: crate::numeric::NumericType,
 {
     /// 读取寄存器
     pub async fn read_register(&mut self, reg: u8) -> Result<u8, SPI::Error> {

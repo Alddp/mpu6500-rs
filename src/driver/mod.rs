@@ -17,10 +17,11 @@ use embassy_time::Timer;
 use embedded_hal::digital::OutputPin;
 use embedded_hal_async::spi::SpiBus;
 
-impl<SPI, CS> Mpu6500<SPI, CS>
+impl<SPI, CS, T> Mpu6500<SPI, CS, T>
 where
     SPI: SpiBus<u8>,
     CS: OutputPin,
+    T: crate::numeric::NumericType,
 {
     /// 创建新的MPU6500实例
     pub fn new(spi: SPI, cs: CS, config: Mpu6500Config) -> Self {
@@ -31,9 +32,9 @@ where
             accel_offset: (0, 0, 0),
             gyro_offset: (0, 0, 0),
             // last_update: None,
-            pitch: 0.0,
-            roll: 0.0,
-            yaw: 0.0,
+            pitch: T::zero(),
+            roll: T::zero(),
+            yaw: T::zero(),
         }
     }
 
@@ -64,7 +65,7 @@ where
     }
 
     /// 校准初始化（包含传感器校准）
-    pub async fn calibrate_init(&mut self,cycle:u16) -> Result<(), SPI::Error> {
+    pub async fn calibrate_init(&mut self, cycle: u16) -> Result<(), SPI::Error> {
         self.init_with_config().await?;
         self.calibrate_sensors(cycle).await?;
         Ok(())

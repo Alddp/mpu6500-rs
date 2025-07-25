@@ -4,10 +4,11 @@ use embassy_time::Timer;
 use embedded_hal::digital::OutputPin;
 use embedded_hal_async::spi::SpiBus;
 
-impl<SPI, CS> Mpu6500<SPI, CS>
+impl<SPI, CS, T> Mpu6500<SPI, CS, T>
 where
     SPI: SpiBus<u8>,
     CS: OutputPin,
+    T: crate::numeric::NumericType,
 {
     /// 校准传感器
     pub async fn calibrate_sensors(&mut self, cycle: u16) -> Result<(), SPI::Error> {

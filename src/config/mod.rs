@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
+pub use builder::ConfigBuilder as NewConfigBuilder;
 pub use clock::*;
 pub use config_struct::{
     AccelScale, ClockSource, ConfigBuilder, GyroScale, Mpu6500Config, calculate_sample_rate_divider,
@@ -9,6 +10,7 @@ pub use config_struct::{
 pub use interrupt::*;
 pub use scale::*;
 
+mod builder;
 mod clock;
 mod config_struct;
 mod interrupt;

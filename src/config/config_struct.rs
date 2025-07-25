@@ -62,6 +62,8 @@ impl ConfigBuilder {
             sample_rate: self.sample_rate,
             clock_source: self.clock_source,
             enable_interrupts: self.enable_interrupts,
+            enable_fifo: false,
+            low_power_mode: false,
         }
     }
 }
@@ -74,7 +76,8 @@ pub struct Mpu6500Config {
     pub sample_rate: u16,
     pub clock_source: ClockSource,
     pub enable_interrupts: bool,
-    // 如有其它字段可补充
+    pub enable_fifo: bool,
+    pub low_power_mode: bool,
 }
 
 impl Default for Mpu6500Config {
@@ -86,6 +89,8 @@ impl Default for Mpu6500Config {
             sample_rate: 1000,
             clock_source: ClockSource::Internal,
             enable_interrupts: false,
+            enable_fifo: false,
+            low_power_mode: false,
         }
     }
 }

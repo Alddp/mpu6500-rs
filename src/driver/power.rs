@@ -5,10 +5,11 @@ use embassy_time::Timer;
 use embedded_hal::digital::OutputPin;
 use embedded_hal_async::spi::SpiBus;
 
-impl<SPI, CS> Mpu6500<SPI, CS>
+impl<SPI, CS, T> Mpu6500<SPI, CS, T>
 where
     SPI: SpiBus<u8>,
     CS: OutputPin,
+    T: crate::numeric::NumericType,
 {
     /// 进入睡眠模式
     pub async fn sleep(&mut self) -> Result<(), SPI::Error> {

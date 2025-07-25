@@ -3,10 +3,11 @@ use crate::register::*;
 use embedded_hal::digital::OutputPin;
 use embedded_hal_async::spi::SpiBus;
 
-impl<SPI, CS> Mpu6500<SPI, CS>
+impl<SPI, CS, T> Mpu6500<SPI, CS, T>
 where
     SPI: SpiBus<u8>,
     CS: OutputPin,
+    T: crate::numeric::NumericType,
 {
     /// 启用FIFO
     pub async fn enable_fifo(&mut self) -> Result<(), SPI::Error> {

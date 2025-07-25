@@ -1,14 +1,14 @@
 use crate::register::*;
-use crate::{Mpu6500, SensorData};
+use crate::{Mpu6500, SensorData, numeric::NumericType};
 
 use embedded_hal::digital::OutputPin;
 use embedded_hal_async::spi::SpiBus;
-pub use libm::{atan2f, powf, sqrtf};
 
-impl<SPI, CS> Mpu6500<SPI, CS>
+impl<SPI, CS, T> Mpu6500<SPI, CS, T>
 where
     SPI: SpiBus<u8>,
     CS: OutputPin,
+    T: NumericType,
 {
     // ================== 初始化与校准 ==================
     /// 读取设备ID（WHO_AM_I寄存器），用于检测设备是否连接正常。
@@ -34,15 +34,15 @@ where
     }
 
     /// 读取校准后的加速度计数据（三轴，单位：m/s²）
-    pub async fn read_accel(&mut self) -> Result<(f32, f32, f32), SPI::Error> {
+    pub async fn read_accel(&mut self) -> Result<(T, T, T), SPI::Error> {
         let (x, y, z) = self.read_accel_raw().await?;
         let x = x - self.accel_offset.0;
         let y = y - self.accel_offset.1;
         let z = z - self.accel_offset.2;
         let scale = self.config.accel_scale.get_scale_factor();
-        let x = (x as f32) * 9.81 / scale;
-        let y = (y as f32) * 9.81 / scale;
-        let z = (z as f32) * 9.81 / scale;
+        let x = T::from_f32((x as f32) * 9.81 / scale);
+        let y = T::from_f32((y as f32) * 9.81 / scale);
+        let z = T::from_f32((z as f32) * 9.81 / scale);
         Ok((x, y, z))
     }
 
@@ -59,30 +59,30 @@ where
     }
 
     /// 读取校准后的陀螺仪数据（三轴，单位：rad/s）
-    pub async fn read_gyro(&mut self) -> Result<(f32, f32, f32), SPI::Error> {
+    pub async fn read_gyro(&mut self) -> Result<(T, T, T), SPI::Error> {
         let (x, y, z) = self.read_gyro_raw().await?;
         let x = x - self.gyro_offset.0;
         let y = y - self.gyro_offset.1;
         let z = z - self.gyro_offset.2;
         let scale = self.config.gyro_scale.get_scale_factor();
-        let x = (x as f32) * core::f32::consts::PI / (180.0 * scale);
-        let y = (y as f32) * core::f32::consts::PI / (180.0 * scale);
-        let z = (z as f32) * core::f32::consts::PI / (180.0 * scale);
+        let x = T::from_f32((x as f32) * core::f32::consts::PI / (180.0 * scale));
+        let y = T::from_f32((y as f32) * core::f32::consts::PI / (180.0 * scale));
+        let z = T::from_f32((z as f32) * core::f32::consts::PI / (180.0 * scale));
         Ok((x, y, z))
     }
 
     /// 读取温度（单位：摄氏度）
-    pub async fn read_temp(&mut self) -> Result<f32, SPI::Error> {
+    pub async fn read_temp(&mut self) -> Result<T, SPI::Error> {
         let mut buf = [TEMP_OUT_H | 0x80, 0, 0];
         self.cs.set_low().ok();
         self.spi.transfer_in_place(&mut buf).await?;
         self.cs.set_high().ok();
         let raw = ((buf[1] as i16) << 8) | (buf[2] as i16);
-        Ok((raw as f32) / TEMP_SCALE + TEMP_OFFSET)
+        Ok(T::from_f32((raw as f32) / TEMP_SCALE + TEMP_OFFSET))
     }
 
     /// 读取所有传感器数据（加速度、陀螺仪、温度，单位：物理量）
-    pub async fn read_all(&mut self) -> Result<SensorData, SPI::Error> {
+    pub async fn read_all(&mut self) -> Result<SensorData<T>, SPI::Error> {
         let accel = self.read_accel().await?;
         let gyro = self.read_gyro().await?;
         let temp = self.read_temp().await?;
@@ -92,15 +92,15 @@ where
 
     // ================== 姿态解算与滤波 ==================
     /// 仅用加速度计计算 pitch/roll（静态欧拉角，弧度）
-    pub async fn calculate_pitch_roll_from_accel(&mut self) -> Result<(f32, f32), SPI::Error> {
+    pub async fn calculate_pitch_roll_from_accel(&mut self) -> Result<(T, T), SPI::Error> {
         let (ax, ay, az) = self.read_accel().await?;
-        let pitch_a = atan2f(ax, sqrtf(powf(ay, 2.0) + powf(az, 2.0)));
-        let roll_a = atan2f(ay, az);
+        let pitch_a = T::atan2(ax, (ay * ay + az * az).sqrt());
+        let roll_a = T::atan2(ay, az);
         Ok((pitch_a, roll_a))
     }
 
     /// 仅用陀螺仪积分更新 pitch/roll/yaw（弧度）
-    pub async fn integrate_gyro(&mut self, dt: f32) -> Result<(f32, f32, f32), SPI::Error> {
+    pub async fn integrate_gyro(&mut self, dt: T) -> Result<(T, T, T), SPI::Error> {
         let (gx, gy, gz) = self.read_gyro().await?;
         self.pitch += gx * dt;
         self.roll += gy * dt;
@@ -111,24 +111,25 @@ where
     /// 互补滤波融合加速度计和陀螺仪（弧度）
     pub fn complementary_filter(
         &mut self,
-        acc_pitch: f32,
-        acc_roll: f32,
-        pitch_g: f32,
-        roll_g: f32,
-        yaw_g: f32,
-        alpha: f32,
+        acc_pitch: T,
+        acc_roll: T,
+        pitch_g: T,
+        roll_g: T,
+        yaw_g: T,
+        alpha: T,
     ) {
-        self.pitch = alpha * pitch_g + (1.0 - alpha) * acc_pitch;
-        self.roll = alpha * roll_g + (1.0 - alpha) * acc_roll;
+        let one = T::one();
+        self.pitch = alpha * pitch_g + (one - alpha) * acc_pitch;
+        self.roll = alpha * roll_g + (one - alpha) * acc_roll;
         self.yaw = yaw_g;
     }
 
     /// 获取当前欧拉角（单位：度）
-    pub fn get_euler_angles(&self) -> (f32, f32, f32) {
+    pub fn get_euler_angles(&self) -> (T, T, T) {
         (
-            crate::util::rad2deg(self.pitch),
-            crate::util::rad2deg(self.roll),
-            crate::util::rad2deg(self.yaw),
+            self.pitch * T::rad_to_deg(),
+            self.roll * T::rad_to_deg(),
+            self.yaw * T::rad_to_deg(),
         )
     }
 
@@ -146,7 +147,7 @@ where
     /// 2. 用加速度计计算 pitch/roll 的静态角度
     /// 3. 用互补滤波融合陀螺仪积分和加速度计角度，更新 pitch/roll
     /// 4. yaw 仅用陀螺仪积分
-    pub async fn update(&mut self, dt: f32, alpha: f32) -> Result<(), SPI::Error> {
+    pub async fn update(&mut self, dt: T, alpha: T) -> Result<(), SPI::Error> {
         // 陀螺仪计算欧拉角
         let (pitch_g, roll_g, yaw_g) = self.integrate_gyro(dt).await?;
         // 加速度计计算欧拉角
